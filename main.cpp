@@ -13,6 +13,7 @@
 #include "movemaker.h"
 #include "drawboard.h"
 #include "evaluation.h"
+#include "search.h"
 
 
 uint64_t perft (position &pos, int depth)
@@ -43,8 +44,17 @@ int main ()
 {
     position pos;
     show_board(pos);
-    for (int i = 0; i <= 10; i++) {
+    for (int i = 0; i <= 8; i++) {
         std::cout << i << " " << perft(pos, i) << std::endl;
+    }
+    do_move(pos,  3);
+    do_move(pos, 10);
+    do_move(pos,  4);
+    do_move(pos,  0);
+    std::cout << std::endl << "search:" << std::endl;
+    show_board(pos);
+    for (int i = 1; i <= 5; i++) {
+        std::cout << i << " " << alphabeta(pos, 0, i, -20000, 20000) << std::endl;
     }
     return 0;
 }

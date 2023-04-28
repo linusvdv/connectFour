@@ -26,7 +26,7 @@ void show_board (position pos)
             int color = ((pos.board & (1LL << (i*7 + j)))
                        + (pos.red   & (1LL << (i*7 + j))))
                       >> (i*7 + j);
-            std::cout << colorize(color) << j;
+            std::cout << colorize(color) << "O";
         }
         if (i == 5)
             std::cout << colorize(0) << " "

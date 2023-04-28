@@ -1,53 +1,70 @@
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <iostream>
+#include <tuple>
 
 #include "types.h"
 #include "evaluation.h"
 #include "movemaker.h"
 #include "drawboard.h"
+#include "movesorter.h"
+#include "transpositiontable.h"
 
 
-int alphabeta (position pos, int premv, int depth, int alpha, int beta)
+std::tuple<int, int> alphabeta (position pos, int premv, int depth, int alpha, int beta)
 {
     if (is_won(pos, premv) == true) {
         if (pos.color == 0) {
-            return -10000;
+            return std::make_tuple(-10000, -1);
         }
         else
-            return  10000;
+            return std::make_tuple( 10000, -1);
     }
 
-    if (depth == 0)
-        return evaluation(pos, premv);
+    if (depth <= 0 || std::popcount(pos.board) >= 42)
+        return std::make_tuple(evaluation(pos), -1);
 
 
     int bestvalue = alpha;
+    int bestmv = -1;
 
     std::array<int, 7> mv = moves(pos);
 
     // move sorter
+    bool TT_mv = TT_move_sorter(pos, mv);
+    if (TT_mv == true) {
+        TT_result TT_data = TT_get(pos);
+        if (TT_data.depth >= depth)
+            return std::make_tuple(TT_data.value, TT_data.mv);
+    }
+    move_sorter(pos, mv, TT_mv);
 
+    // search
     for (int i = 0; i < 7; i++) {
+//        std::cout << mv[i] << std::endl;
         if (mv[i] == -1LL) {
             continue;
         }
-
+        int value = 0;
         do_move(pos, mv[i]);
-        int value = -alphabeta(pos, mv[i], depth-1, -beta, -bestvalue);
-/*        if (depth == 5 || true) {
-            std::cout << std::endl << value << " " << bestvalue << std::endl;
-            show_board(pos);
-        }*/
+        if (TT_mv && i == 0)
+            value = -std::get<0>(alphabeta(pos, mv[i], depth-1, -beta, -bestvalue));
+        else
+            value = -std::get<0>(alphabeta(pos, mv[i], depth-2, -beta, -bestvalue));
         undo_move(pos, mv[i]);
 
 
         if (value > bestvalue) {
             bestvalue = value;
+            bestmv = mv[i];
             if (bestvalue >= beta)
                 break;
         }
     }
 
-    return bestvalue;
+    // add to TT
+    if (bestmv != -1)
+        TT_set(pos, depth, bestvalue, bestmv);
+    return std::make_tuple(bestvalue, bestmv);
 }

@@ -6,6 +6,9 @@
 #include <cstdint>
 
 
+typedef unsigned __int128 uint128_t;
+
+
 struct position {
     // board layout:
     // 35 36 37 38 39 40 41
@@ -20,6 +23,28 @@ struct position {
     //  0 yellow
     uint64_t color = -1;
 };
+
+
+struct TranspositionTable {
+    uint64_t board;
+    uint64_t red;
+    int depth;
+    int value;
+    int mv;
+};
+
+
+struct TT_result {
+    bool TT_hit;
+    int depth;
+    int value;
+    int mv;
+};
+
+
+// this number has to be a prime number
+const unsigned int TT_size = 10000019;
+
 
 
 constexpr std::array<uint64_t, 7> columns = {

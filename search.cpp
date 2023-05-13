@@ -12,9 +12,9 @@
 #include "transpositiontable.h"
 
 
-std::tuple<int, int> alphabeta (position pos, int premv, int depth, int alpha, int beta)
+std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta)
 {
-    if (is_won(pos, premv) == true) {
+    if (is_won(pos) == true) {
         if (pos.color == 0) {
             return std::make_tuple(-10000, -1);
         }
@@ -42,16 +42,15 @@ std::tuple<int, int> alphabeta (position pos, int premv, int depth, int alpha, i
 
     // search
     for (int i = 0; i < 7; i++) {
-//        std::cout << mv[i] << std::endl;
         if (mv[i] == -1LL) {
             continue;
         }
         int value = 0;
         do_move(pos, mv[i]);
         if (TT_mv && i == 0)
-            value = -std::get<0>(alphabeta(pos, mv[i], depth-1, -beta, -bestvalue));
+            value = -std::get<0>(alphabeta(pos, depth-1, -beta, -bestvalue));
         else
-            value = -std::get<0>(alphabeta(pos, mv[i], depth-2, -beta, -bestvalue));
+            value = -std::get<0>(alphabeta(pos, depth-1, -beta, -bestvalue));
         undo_move(pos, mv[i]);
 
 

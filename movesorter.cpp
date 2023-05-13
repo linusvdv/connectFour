@@ -6,6 +6,7 @@
 
 #include "types.h"
 #include "transpositiontable.h"
+#include "movemaker.h"
 
 
 bool TT_move_sorter (position pos, std::array<int, 7>& mv)
@@ -27,7 +28,6 @@ void move_sorter ([[maybe_unused]]position pos, std::array<int, 7>& mv, bool TT_
     for (int i = 0; i < 7; i++) {
         mv_value[i].second = mv[i];
         if (i == 0 && TT_move) {
-//            std::cout << "TT_hit" << std::endl;
             mv_value[i].first = 10000;
         }
         else {

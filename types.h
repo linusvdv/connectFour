@@ -22,12 +22,35 @@ struct position {
     // -1 red
     //  0 yellow
     uint64_t color = -1;
+    // count of pieces
+    // outer array
+    // - horrizontal
+    // - vertcial
+    // - diagonal right up/left down
+    // - diagonal right down/left up
+    // middle array
+    // - 0th - red
+    // - 1st - yellow
+    // inner array
+    // - 0th - 0 pieces
+    // - 1st - 1 pieces
+    // - 2nd - 2 pieces
+    // - 3rd - 3 pieces
+    // - 4th - 4 pieces
+    std::array<std::array<std::array<uint64_t, 5>, 2>, 4> cross_count = {{
+        {{{519454312335, 0, 0, 0, 0}, {519454312335, 0, 0, 0, 0}}},
+        {{{2097151, 0, 0, 0, 0}, {2097151, 0, 0, 0, 0}}},
+        {{{247695, 0, 0, 0, 0}, {247695, 0, 0, 0, 0}}},
+        {{{1981560, 0, 0, 0, 0}, {1981560, 0, 0, 0, 0}}}
+    }};
 };
 
 
 struct TranspositionTable {
+    // needed to verifie the board
     uint64_t board;
     uint64_t red;
+    // additional information
     int depth;
     int value;
     int mv;
@@ -118,6 +141,14 @@ constexpr std::array<uint64_t, 13> connect_four = {
     0b0000000000000000001000001000001000001000000000000,
     0b0000000000001000001000001000001000000000000000000,
     0b0000001000001000001000001000000000000000000000000
+};
+
+
+constexpr std::array<uint64_t, 4> cross_types = {
+    (1LL << 21) | (1LL << 22) | (1LL << 23) | (1LL << 24),
+    (1LL <<  3) | (1LL << 10) | (1LL << 17) | (1LL << 24),
+    (1LL <<  0) | (1LL <<  8) | (1LL << 16) | (1LL << 24),
+    (1LL <<  6) | (1LL << 12) | (1LL << 18) | (1LL << 24)
 };
 
 

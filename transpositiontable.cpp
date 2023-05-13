@@ -1,7 +1,8 @@
 #include "types.h"
+#include <vector>
 
 
-std::array<TranspositionTable, TT_size> TT = {};
+std::vector<TranspositionTable> TT(TT_size);
 
 
 unsigned int TT_hash (position pos)

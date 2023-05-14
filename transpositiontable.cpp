@@ -32,7 +32,7 @@ TT_result TT_get (position pos)
 void TT_set (position pos, int depth, int value, int mv)
 {
     unsigned int hash = TT_hash(pos);
-    if (TT[hash].depth < depth) {
+    if (TT[hash].depth < depth + 4) {
         TT[hash].board = pos.board;
         TT[hash].red = pos.red;
         TT[hash].depth = depth;

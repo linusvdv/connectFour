@@ -50,7 +50,7 @@ std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta)
         if (TT_mv && i == 0)
             value = -std::get<0>(alphabeta(pos, depth-1, -beta, -bestvalue));
         else
-            value = -std::get<0>(alphabeta(pos, depth-1, -beta, -bestvalue));
+            value = -std::get<0>(alphabeta(pos, depth-2, -beta, -bestvalue));
         undo_move(pos, mv[i]);
 
 

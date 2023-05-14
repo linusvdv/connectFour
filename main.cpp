@@ -65,7 +65,7 @@ int main ()
 //    do_move(pos,  5);
     std::cout << std::endl << "search:" << std::endl;
     show_board(pos, true);
-    for (int i = 1; i <= 16; i++) {
+    for (int i = 1; i <= 30; i++) {
         std::tuple<int, int> search = alphabeta(pos, i, -20000, 20000);
         std::cout <<  "depth "     << i 
                   << " value: "    << std::get<0>(search) 

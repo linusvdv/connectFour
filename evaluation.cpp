@@ -10,37 +10,24 @@
 
 bool is_won (position pos)
 {
+    uint64_t x = 0;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 2; j++)
-            if (std::popcount(pos.cross_count[i][j][4]) > 0)
-                return true;
-    return false;
+            x |= pos.cross_count[i][j][4];
+    return std::popcount(x) > 0;
 }
 
 
 int evaluation (position pos)
 {
-    return 0;
-
     int eval = 0;
     // Here will be the evaluation eventually the net
 
-    std::array<uint64_t, 2> pos_colors = {
-        pos.red,
-        (pos.board & (~pos.red))
-    };
-    int side = -1;
-    for (int j = 0; j < 2; j++) {
-        for (int i = 0; i < 42; i++){
-            uint64_t pos_color = pos_colors[j];
-            if (24 - i > 0)
-                pos_color <<= 24 - i;
-            else
-                pos_color >>= i - 24;
-            pos_color &= cross[i];
-            eval += side * (1 << std::popcount(pos_color));
-        }
-        side = 1;
-    }
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 2; j++)
+            for (int k = 0; k < 5; k++) {
+                eval += (std::popcount(pos.cross_count[i][  j][k] & 
+                                       pos.cross_count[i][1-j][0]) << (k*2)) * (1-j*2);
+            }
     return eval;
 }

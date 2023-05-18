@@ -42,7 +42,7 @@ std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta)
 
     // search
     for (int i = 0; i < 7; i++) {
-        if (mv[i] == -1LL) {
+        if (mv[i] == -1) {
             continue;
         }
         int value = 0;

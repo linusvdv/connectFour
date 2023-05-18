@@ -36,7 +36,7 @@ void show_board (position pos, bool debug)
     std::cout << std::endl;
     if (debug) {
         for (int n = 0; n < 2; n++)
-            for(int m = 0; m < 4; m++) {
+            for (int m = 0; m < 4; m++) {
                 for (int i = 5; i >= 0; i--) {
                     for (int o = 0; o < 5; o++) {
                         for (int j = 0; j < 7; j++) {

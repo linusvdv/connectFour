@@ -27,7 +27,9 @@ int evaluation (position pos)
         for (int j = 0; j < 2; j++)
             for (int k = 0; k < 5; k++) {
                 eval += (std::popcount(pos.cross_count[i][  j][k] & 
-                                       pos.cross_count[i][1-j][0]) << (k*2)) * (1-j*2);
+                                       pos.cross_count[i][1-j][0]) << (k*2)) * (j*2-1);
             }
+//    if (pos.color == uint64_t(-1))
+//        eval += 100;
     return eval;
 }

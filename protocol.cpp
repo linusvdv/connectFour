@@ -12,6 +12,7 @@
 #include "drawboard.h"
 #include "evaluation.h"
 #include "search.h"
+#include "transpositiontable.h"
 
 
 void clear_board (position &pos)
@@ -137,6 +138,11 @@ void protocol (position &pos, std::string input, std::atomic<bool>& search_stop,
     do {
         if (input == "isready") {
             std::cout << "readyok" << std::endl;
+        }
+        else if (input == "newgame") {
+            TT_clear();
+            clear_board(pos);
+            std::cout << "started a new game" << std::endl;
         }
         // position
         else if (input.find("position LN ") == 0) {

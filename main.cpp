@@ -33,7 +33,7 @@ int main ()
 
     // loop
     std::cout << "Connect Four by linusvdv" << std::endl;
-    std::future<void> fut = std::async(std::launch::async, protocol, std::ref(pos), "position start", std::ref(search_stop), std::ref(next_protocol_str), std::ref(next_protocol_mtx));
+    std::future<void> fut = std::async(std::launch::async, protocol, std::ref(pos), "newgame", std::ref(search_stop), std::ref(next_protocol_str), std::ref(next_protocol_mtx));
     bool stop = false;
     while (!stop) {
         std::string input;

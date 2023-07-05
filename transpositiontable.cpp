@@ -40,3 +40,15 @@ void TT_set (position pos, int depth, int value, int mv)
         TT[hash].mv = mv;
     }
 }
+
+
+void TT_clear ()
+{
+    for (int i = 0; i < int(TT_size); i++) {
+        TT[i].board = 0;
+        TT[i].red = 0;
+        TT[i].depth = 0;
+        TT[i].value = 0;
+        TT[i].mv = 0;
+    }
+}

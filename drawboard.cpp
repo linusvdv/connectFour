@@ -21,6 +21,7 @@ std::string colorize (int color)
 
 void show_board (position pos, bool debug)
 {
+    std::cout << std::endl;
     for (int i = 5; i >= 0; i--) {
         for (int j = 0; j < 7; j++) {
             int color = ((pos.board & (1LL << (i*7 + j)))
@@ -51,5 +52,4 @@ void show_board (position pos, bool debug)
                 std::cout << std::endl;
             }
     }
-    std::cout << std::endl;
 }

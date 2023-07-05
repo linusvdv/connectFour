@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <tuple>
+#include <atomic>
 
 #include "types.h"
 #include "evaluation.h"
@@ -12,19 +13,21 @@
 #include "transpositiontable.h"
 
 
-std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta)
+std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta, std::atomic<bool>& search_stop)
 {
     if (is_won(pos) == true) {
         if (pos.color == 0) {
-            return std::make_tuple(-10000, -1);
+            return std::make_tuple(-10042 + std::popcount(pos.board), -1);
         }
         else
-            return std::make_tuple( 10000, -1);
+            return std::make_tuple( 10042 - std::popcount(pos.board), -1);
     }
 
     if (depth <= 0 || std::popcount(pos.board) >= 42)
         return std::make_tuple(evaluation(pos), -1);
 
+    if (search_stop)
+        return std::make_tuple(42424242*((pos.color&1LL)*2 - 1), -1);
 
     int bestvalue = alpha;
     int bestmv = -1;
@@ -48,9 +51,9 @@ std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta)
         int value = 0;
         do_move(pos, mv[i]);
         if (TT_mv && i == 0)
-            value = -std::get<0>(alphabeta(pos, depth-1, -beta, -bestvalue));
+            value = -std::get<0>(alphabeta(pos, depth-1, -beta, -bestvalue, search_stop));
         else
-            value = -std::get<0>(alphabeta(pos, depth-2, -beta, -bestvalue));
+            value = -std::get<0>(alphabeta(pos, depth-2, -beta, -bestvalue, search_stop));
         undo_move(pos, mv[i]);
 
 

@@ -7,8 +7,13 @@
 #include <iterator>
 #include <ostream>
 #include <tuple>
+#include <unistd.h>
 #include <vector>
 #include <string>
+#include <atomic>
+#include <future>
+#include <chrono>
+#include <mutex>
 
 #include "types.h"
 #include "movemaker.h"
@@ -22,36 +27,44 @@
 int main ()
 {
     position pos;
-/*    show_board(pos, true);
-    do_move(pos, 2);
-    do_move(pos, 9);
-    do_move(pos, 3);
-    show_board(pos, true);
-    undo_move(pos, 3);
-    undo_move(pos, 9);
-    undo_move(pos, 2);
-    show_board(pos, true);*/
+    std::atomic<bool> search_stop = false;
+    std::string next_protocol_str = ""; // protected by next_protocol_mtx
+    std::mutex next_protocol_mtx;
 
-    for (int i = 0; i <= 7; i++) {
-        std::cout << i << " " << perft(pos, i) << std::endl;
+    // loop
+    std::cout << "Connect Four by linusvdv" << std::endl;
+    std::future<void> fut = std::async(std::launch::async, protocol, std::ref(pos), "position start", std::ref(search_stop), std::ref(next_protocol_str), std::ref(next_protocol_mtx));
+    bool stop = false;
+    while (!stop) {
+        std::string input;
+        std::getline(std::cin, input);
+
+        // stops the program
+        if (input == "quit") {
+            stop = true;
+            search_stop = true;
+        }
+        // stops the running prosses
+        else if (input == "stop") {
+            search_stop = true;
+        }
+        else {
+            // if the last instruction is finished
+            if (fut.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                search_stop = false;
+                // start a new instruction
+                fut = std::async(std::launch::async, protocol, std::ref(pos), input, std::ref(search_stop), std::ref(next_protocol_str), std::ref(next_protocol_mtx));
+            }
+            else {
+                next_protocol_mtx.lock();
+                if (next_protocol_str == "")
+                    next_protocol_str = input;
+                else
+                    std::cout << "ERROR: There is still a running process and one waiting";
+                next_protocol_mtx.unlock();
+            }
+        }
     }
-    do_move(pos,  3);
-    do_move(pos,  0);
-    do_move(pos,  2);
-    do_move(pos,  6);
-    do_move(pos, 10);
-//    do_move(pos,  5);
-    std::cout << std::endl << "search:" << std::endl;
-    show_board(pos, false);
-    for (int i = 1; i <= 15; i++) {
-        std::tuple<int, int> search = alphabeta(pos, i, -20000, 20000);
-        std::cout <<  "depth "     << i 
-                  << " value: "    << std::get<0>(search) 
-                  << " bestmove: " <<  std::get<1>(search) << std::endl;
-    }
-    protocol(pos, "position LN YR_RYYYRY_YRR_YR_RYY_YY_RRR_YR_RR__R__Y___ Y moves 2");
-    show_board(pos, false);
-    protocol(pos, "perft 10");
     return 0;
 }
 

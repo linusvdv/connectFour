@@ -3,7 +3,7 @@ RM=rm -f
 
 CPPFLAGS=-std=c++20
 ifeq ($(opt),no)
-    CXXFLAGS=-Wall -Wextra -g3 -O0 -std=c++20
+    CXXFLAGS=-Wall -Wextra -g3 -O0 -fsanitize=thread -std=c++20
 else
   ifeq ($(opt),nolto)
     CXXFLAGS=-Wall -Wextra -g3 -O3 -fsanitize=address -std=c++20

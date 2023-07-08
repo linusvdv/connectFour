@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <tuple>
 #include <atomic>
+#include <queue>
+#include <condition_variable>
 
 #include "types.h"
 #include "movemaker.h"
@@ -132,159 +134,180 @@ bool LN (position &pos, std::string input)
 }
 
 
-void protocol (position &pos, std::string input, std::atomic<bool>& search_stop, std::string& next_protocol_str, std::mutex& next_protocol_mtx)
+void protocol (position &pos, std::string input, std::atomic<bool>& search_stop)
 {
-    bool repeat = false;
-    do {
-        if (input == "isready") {
-            std::cout << "readyok" << std::endl;
-        }
-        else if (input == "newgame") {
-            TT_clear();
-            clear_board(pos);
-            std::cout << "started a new game" << std::endl;
-        }
-        // position
-        else if (input.find("position LN ") == 0) {
-            input.erase(0, std::string("position LN ").length());
-            // 42 pieces, 1 space and 1 color of piece;
-            if (input.length() >= 44) {
-                if (LN(pos, input) == false) {
-                    clear_board(pos);
-                    std::cout << "Protocol position ERROR: Wrong position LN!" << std::endl;
-                }
-                else
-                    std::cout << "Set the position LN" << std::endl;
-            }
-            else {
-                std::cout << "Protocol position ERROR: Not long enough position LN!" << std::endl;
-            }
-        }
-
-        // start position
-        else if (input.find("position start") == 0) {
-            clear_board(pos);
-            input.erase(0, std::string("position start").length());
-            if (input.length() > 0) {
-                if (LN_moves(pos, input) == false) {
-                    clear_board(pos);
-                    std::cout << "Protocol position ERROR: Position start has wrong moves!" << std::endl;
-                }
-                else
-                    std::cout << "Set the starting position with the moves" << std::endl;
+    if (input == "isready") {
+        std::cout << "readyok" << std::endl;
+    }
+    else if (input == "newgame") {
+        TT_clear();
+        clear_board(pos);
+        std::cout << "started a new game" << std::endl;
+    }
+    // position
+    else if (input.find("position LN ") == 0) {
+        input.erase(0, std::string("position LN ").length());
+        // 42 pieces, 1 space and 1 color of piece;
+        if (input.length() >= 44) {
+            if (LN(pos, input) == false) {
+                clear_board(pos);
+                std::cout << "Protocol position ERROR: Wrong position LN!" << std::endl;
             }
             else
-                std::cout << "Set the starting position" << std::endl;
+                std::cout << "Set the position LN" << std::endl;
         }
-
-        // perft
-        else if (input.find("perft ") == 0) {
-            input.erase(0, std::string("perft ").length());
-            int depth = 0;
-            for (int i = 0; i < int(input.length()); i++) {
-                if (isdigit(input[i])){
-                    depth *= 10;
-                    depth += int(input[i]) - int('0');
-                }
-                else {
-                    std::cout << "Protocol perft ERROR: Wrong perft depth! The depth is not made out of numbers!" << std::endl;
-                    return;
-                }
-            }
-            if (depth > 10) {
-                depth = 10;
-                std::cout << "Protocol perft WARNING: perft depth to high. Uses depth 10 instead." << std::endl;
-            }
-            else if (depth == 0) {
-                std::cout << "Protocol perft ERROR: perft depth 0!" << std::endl;
-                return;
-            }
-            if (is_won(pos)) {
-                std::cout << "Protocol perft ERROR: this position has already a connect four!" << std::endl;
-                return;
-            }
-            std::cout << "Perft " << depth << ": " << perft(pos, depth) << std::endl;
-        }
-
-        // draw the board
-        else if (input.find("board") == 0) {
-            if (input.find("debug") != std::string::npos)
-                if (input.find("debug") == 6 && input[5] == ' ') {
-                    show_board(pos, true);
-                    return;
-                }
-            if (input.length() == std::string("board").length()) {
-                show_board(pos, false);
-                return;
-            }
-            std::cout << "Protocol board WARNING: draws board without debug" << std::endl;
-            show_board(pos, false);
-        }
-
-        // search
-        else if (input.find("go ") == 0) {
-            int total_depth = 0;
-            if (input.find("depth ") == 3) {
-                input.erase(0, std::string("go depth ").length());
-                for (int i = 0; i < int(input.length()); i++) {
-                    if (isdigit(input[i])) {
-                        total_depth *= 10;
-                        total_depth += int(input[i]) - int('0');
-                    }
-                    else {
-                        std::cout << "Protocol search ERROR: Wrong search depth! The depth is not made out of numbers!" << std::endl;
-                        return;
-                    }
-                }
-
-            }
-            else if (input.find("infinite") == 3) {
-                total_depth = 128;
-                if (input.length() > std::string("go infinite").length())
-                    std::cout << "Protocol search WARNING: go infinite has too much informations." << std::endl;
-            }
-            else {
-                std::cout << "Protocol search ERROR: Command not found!" << std::endl;
-                return;
-            }
-
-            std::tuple<int, int> last_search;
-            for (int depth = 1; depth <= total_depth; depth++) {
-                if (search_stop)
-                    break;
-                std::tuple<int, int> search = alphabeta(pos, depth, -20000, 20000, search_stop);
-                if (!search_stop && depth < total_depth)
-                    std::cout <<  "info depth: " << depth
-                              << " value: "      << std::get<0>(search)
-                              << " bestmove: "   << std::get<1>(search) << std::endl;
-                else if (!search_stop)
-                    std::cout <<  "depth: "      << depth
-                              << " value: "      << std::get<0>(search)
-                              << " bestmove: "   << std::get<1>(search) << std::endl;
-                else if (depth != 1)
-                    std::cout <<  "depth: "      << depth - 1
-                              << " value: "      << std::get<0>(last_search)
-                              << " bestmove: "   << std::get<1>(last_search) << std::endl;
-                last_search = search;
-            }
-        }
-
         else {
-            std::cout << "Protocol ERROR: Command not found!" << std::endl;
+            std::cout << "Protocol position ERROR: Not long enough position LN!" << std::endl;
         }
+    }
 
-        // repeat until no protocol command is there
-        next_protocol_mtx.lock();
-        if (next_protocol_str == "")
-            repeat = false;
-        else if (search_stop == true) {
-            repeat = false;
-            std::cout << "Protocol ERROR: There was still a command in the buffer: " << next_protocol_str << std::endl;
+    // start position
+    else if (input.find("position start") == 0) {
+        clear_board(pos);
+        input.erase(0, std::string("position start").length());
+        if (input.length() > 0) {
+            if (LN_moves(pos, input) == false) {
+                clear_board(pos);
+                std::cout << "Protocol position ERROR: Position start has wrong moves!" << std::endl;
+            }
+            else
+                std::cout << "Set the starting position with the moves" << std::endl;
         }
         else
-            repeat = true;
-        input = next_protocol_str;
-        next_protocol_str = "";
-        next_protocol_mtx.unlock();
-    } while (repeat);
+            std::cout << "Set the starting position" << std::endl;
+    }
+
+    // perft
+    else if (input.find("perft ") == 0) {
+        input.erase(0, std::string("perft ").length());
+        int depth = 0;
+        for (int i = 0; i < int(input.length()); i++) {
+            if (isdigit(input[i])){
+                depth *= 10;
+                depth += int(input[i]) - int('0');
+            }
+            else {
+                std::cout << "Protocol perft ERROR: Wrong perft depth! The depth is not made out of numbers!" << std::endl;
+                return;
+            }
+        }
+        if (depth > 10) {
+            depth = 10;
+            std::cout << "Protocol perft WARNING: perft depth to high. Uses depth 10 instead." << std::endl;
+        }
+        else if (depth == 0) {
+            std::cout << "Protocol perft ERROR: perft depth 0!" << std::endl;
+            return;
+        }
+        if (is_won(pos)) {
+            std::cout << "Protocol perft ERROR: this position has already a connect four!" << std::endl;
+            return;
+        }
+        std::cout << "Perft " << depth << ": " << perft(pos, depth) << std::endl;
+    }
+
+    // draw the board
+    else if (input.find("board") == 0) {
+        if (input.find("debug") != std::string::npos)
+            if (input.find("debug") == 6 && input[5] == ' ') {
+                show_board(pos, true);
+                return;
+            }
+        if (input.length() == std::string("board").length()) {
+            show_board(pos, false);
+            return;
+        }
+        std::cout << "Protocol board WARNING: draws board without debug" << std::endl;
+        show_board(pos, false);
+    }
+
+    // search
+    else if (input.find("go ") == 0) {
+        int total_depth = 0;
+        if (input.find("depth ") == 3) {
+            input.erase(0, std::string("go depth ").length());
+            for (int i = 0; i < int(input.length()); i++) {
+                if (isdigit(input[i])) {
+                    total_depth *= 10;
+                    total_depth += int(input[i]) - int('0');
+                }
+                else {
+                    std::cout << "Protocol search ERROR: Wrong search depth! The depth is not made out of numbers!" << std::endl;
+                    return;
+                }
+            }
+
+        }
+        else if (input.find("infinite") == 3) {
+            total_depth = 128;
+            if (input.length() > std::string("go infinite").length())
+                std::cout << "Protocol search WARNING: go infinite has too much informations." << std::endl;
+        }
+        else {
+            std::cout << "Protocol search ERROR: Command not found!" << std::endl;
+            return;
+        }
+
+        std::tuple<int, int> last_search;
+        for (int depth = 1; depth <= total_depth; depth++) {
+            if (search_stop)
+                break;
+            std::tuple<int, int> search = alphabeta(pos, depth, -20000, 20000, search_stop);
+            if (!search_stop && depth < total_depth)
+                std::cout <<  "info depth: " << depth
+                          << " value: "      << std::get<0>(search)
+                          << " bestmove: "   << std::get<1>(search) << std::endl;
+            else if (!search_stop)
+                std::cout <<  "depth: "      << depth
+                          << " value: "      << std::get<0>(search)
+                          << " bestmove: "   << std::get<1>(search) << std::endl;
+            else if (depth != 1)
+                std::cout <<  "depth: "      << depth - 1
+                          << " value: "      << std::get<0>(last_search)
+                          << " bestmove: "   << std::get<1>(last_search) << std::endl;
+            last_search = search;
+        }
+    }
+
+    else {
+        std::cout << "Protocol ERROR: Command not found!" << std::endl;
+    }
+}
+
+
+void protocol_queue_clear (std::queue<std::string>& protocol_queue, std::atomic<bool>& pending_task)
+{
+    std::queue<std::string> empty;
+    std::swap(protocol_queue, empty);
+    pending_task = false;
+}
+
+
+void protocol_reader (std::queue<std::string>& protocol_queue, std::mutex& protocol_queue_mutex, std::condition_variable& protocol_cv, std::atomic<bool>& pending_task, std::atomic<bool>& search_stop, std::atomic<bool>& global_stop)
+{
+    std::string input;
+    do {
+        std::getline(std::cin, input);
+
+        protocol_queue_mutex.lock();
+        // stops the program
+        if (input == "quit") {
+            search_stop = true;
+            global_stop = true;
+            protocol_queue_clear(protocol_queue, pending_task);
+        }
+        // stops the running prosses and clear the queue
+        else if (input == "stop") {
+            search_stop = true;
+            protocol_queue_clear(protocol_queue, pending_task);
+        }
+        // add to the protocol queue
+        else {
+            protocol_queue.push(input);
+            pending_task = true;
+        }
+        protocol_queue_mutex.unlock();
+        // notifies the main program
+        protocol_cv.notify_one();
+    } while (input != "quit");
 }

@@ -191,20 +191,6 @@ async def main():
     running = [create_running(protocol[0]),
                create_running(protocol[1])]
 
-    await running[0]
-    await running[1]
-    if get_res(running[0]) == \
-       get_res(running[1]) == \
-       "started a new game":
-        print("Starting matches")
-    else:
-        print("ERROR: started incorrectly",
-              get_res(running[0]), get_res(running[1]))
-        quit()
-
-    running = [create_running(protocol[0]),
-               create_running(protocol[1])]
-
     # start of the program
     # win, draw, loss
     wdl = np.array([0, 0, 0])

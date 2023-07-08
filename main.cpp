@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <condition_variable>
 #include <cstdint>
 #include <iostream>
 #include <bit>
@@ -6,6 +7,8 @@
 #include <bitset>
 #include <iterator>
 #include <ostream>
+#include <queue>
+#include <thread>
 #include <tuple>
 #include <unistd.h>
 #include <vector>
@@ -27,44 +30,61 @@
 int main ()
 {
     position pos;
-    std::atomic<bool> search_stop = false;
-    std::string next_protocol_str = ""; // protected by next_protocol_mtx
-    std::mutex next_protocol_mtx;
 
-    // loop
+    // stops the search and globaly
+    std::atomic<bool> search_stop = false;
+    std::atomic<bool> global_stop = false;
+
+    // protocol queue
+    std::queue<std::string> protocol_queue;
+    std::mutex protocol_queue_mutex;
+    std::condition_variable protocol_cv;
+    std::atomic<bool> pending_task = false;
+
+    // start the protocol reader
+    std::future<void> protocol_futur =
+        std::async(
+            std::launch::async,
+            protocol_reader,
+            std::ref(protocol_queue),
+            std::ref(protocol_queue_mutex),
+            std::ref(protocol_cv),
+            std::ref(pending_task),
+            std::ref(search_stop),
+            std::ref(global_stop)
+        );
+
     std::cout << "Connect Four by linusvdv" << std::endl;
-    std::future<void> fut = std::async(std::launch::async, protocol, std::ref(pos), "newgame", std::ref(search_stop), std::ref(next_protocol_str), std::ref(next_protocol_mtx));
-    bool stop = false;
-    while (!stop) {
-        std::string input;
-        std::getline(std::cin, input);
+
+    // starts the protocol if an item is in the queue
+    while (true) {
+        // wait until one element is in the queue
+        {
+            std::unique_lock lk(protocol_queue_mutex);
+            protocol_cv.wait(lk, [&pending_task, &search_stop]{return pending_task || search_stop;});
+        }
 
         // stops the program
-        if (input == "quit") {
-            stop = true;
-            search_stop = true;
+        if (global_stop)
+            break;
+
+        // takes the first element of the queue and deletes it
+        protocol_queue_mutex.lock();
+        std::string protocol_input = protocol_queue.front();
+        protocol_queue.pop();
+        if (protocol_queue.size() == 0) {
+            pending_task = false;
         }
-        // stops the running prosses
-        else if (input == "stop") {
-            search_stop = true;
-        }
-        else {
-            // if the last instruction is finished
-            if (fut.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-                search_stop = false;
-                // start a new instruction
-                fut = std::async(std::launch::async, protocol, std::ref(pos), input, std::ref(search_stop), std::ref(next_protocol_str), std::ref(next_protocol_mtx));
-            }
-            else {
-                next_protocol_mtx.lock();
-                if (next_protocol_str == "")
-                    next_protocol_str = input;
-                else
-                    std::cout << "ERROR: There is still a running process and one waiting";
-                next_protocol_mtx.unlock();
-            }
-        }
+        protocol_queue_mutex.unlock();
+
+        // calling the protocol
+        protocol(pos, protocol_input, search_stop);
+
+        // stops the program
+        if (global_stop)
+            break;
+        else if (search_stop)
+            search_stop = false;
     }
-    return 0;
 }
 

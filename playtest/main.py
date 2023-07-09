@@ -1,6 +1,7 @@
 import asyncio
 import sys
 import numpy as np
+import os.path
 
 # options
 debug = "Warning"
@@ -234,16 +235,25 @@ async def main():
     elif len(sys.argv) > 3:
         change_options(sys.argv[3:])
 
+    # checks if the first two arguments are files
+    if not (os.path.exists(sys.argv[1]) and os.path.exists(sys.argv[2])):
+        print("ERROR: files don't exist")
+        quit()
+    # checks if the first two arguments are executables
+    if not (os.access(sys.argv[1], os.X_OK) and os.access(sys.argv[2], os.X_OK)):
+        print("ERROR: file is not executable")
+        quit()
+
     # create the protocol
     protocol = [
         await asyncio.create_subprocess_exec(
-            sys.argv[1],
+            "./"+str(sys.argv[1]),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         ),
         await asyncio.create_subprocess_exec(
-            sys.argv[2],
+            "./"+str(sys.argv[2]),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE

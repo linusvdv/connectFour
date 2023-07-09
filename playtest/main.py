@@ -2,17 +2,28 @@ import asyncio
 import sys
 import numpy as np
 
-
-async def get_data(protocol):
-    return await protocol.stdout.readline()
-
-
-def get_res(running):
-    return running.result().decode('ascii').rstrip()
+# options
+debug = "Warning"
 
 
-def create_running(protocol):
-    return asyncio.create_task(get_data(protocol))
+def change_options(options):
+    # all global options
+    global debug
+
+    for option in options:
+        # debug
+        if option[:7] == "-debug=":
+            if option[7:] in ["None", "Error", "Warning", "Info", "All"]:
+                debug = option[7:]
+            else:
+                debug = "Warning"
+                print("ERROR: Not a correct debug mode")
+                print("got:", option[7:])
+
+        # error handling
+        else:
+            print("ERROR: Not a correct option")
+            print("got:", option)
 
 
 async def clear_buffer(protocol, running, player):
@@ -23,14 +34,38 @@ async def clear_buffer(protocol, running, player):
         running[player] = create_running(protocol[player])
 
 
-async def isready(protocol, running, player):
-    # check if the program is read
-    protocol[player].stdin.write(b"isready\n")
+def get_res(running):
+    return running.result().decode('ascii').rstrip()
+
+
+async def get_data(protocol):
+    return await protocol.stdout.readline()
+
+
+def create_running(protocol):
+    return asyncio.create_task(get_data(protocol))
+
+
+async def send_message(protocol, running, player, p_send, p_expect, p_error):
+    # check if the buffer has still data in it
+    await clear_buffer(protocol, running, player)
+
+    # send the message
+    protocol[player].stdin.write(f'{p_send}\n'.encode('ascii'))
+    # get the result
     await running[player]
-    if not get_res(running[player]) == "readyok":
-        print("ERROR:", player, "isready:", get_res(running[player]))
+    if get_res(running[player]) != p_expect:
+        # error handling
+        print(str(player) + ":", "ERROR:", p_error)
+        if debug in ["Error", "Warning", "Info", "All"]:
+            print(str(player) + ":", "expected:", p_expect)
+            print(str(player) + ":", "got:     ", get_res(running[player]))
     else:
-        print(player, get_res(running[player]))
+        # normal procedure
+        if debug in ["All"]:
+            print(str(player) + ":", get_res(running[player]))
+
+    # start running again
     running[player] = create_running(protocol[player])
 
 
@@ -49,18 +84,33 @@ def position_LN(position, color):
 
     protocol += " "
 
+    # which color moves next
     if color == 1:
         protocol += "R"
     else:
         protocol += "Y"
 
-    protocol += "\n"
+    return protocol
 
-    return protocol.encode('ascii')
+
+def leagal_moves(position):
+    moves = []
+    for i in range(7):
+        for j in range(6):
+            if position[i][j] == 0:
+                moves.append(j*7+i)
+                break
+    return moves
+
+
+def is_leagal(position, move):
+    if move in leagal_moves(position):
+        return True
+    return False
 
 
 def is_won(position):
-    # horizontal
+    # horizontal -
     for i in range(4):
         for j in range(6):
             if (position[i+0][j] ==
@@ -69,7 +119,7 @@ def is_won(position):
                 position[i+3][j] != 0):
                 return position[i][j]
 
-    # vertical
+    # vertical |
     for i in range(7):
         for j in range(3):
             if (position[i][j+0] ==
@@ -97,6 +147,30 @@ def is_won(position):
                 return position[i][j+3]
 
 
+async def search(protocol, running, player):
+    # writes to the program
+    protocol[player].stdin.write(b'go depth 7\n')
+
+    # awaits until the it gets the output
+    is_info = True
+    out = ""
+    while is_info:
+        await running[player]
+        out = get_res(running[player])
+
+        # ignore inputs that begin with a info
+        if len(out) > 4 and out[:4] != "info":
+            is_info = False
+            if debug in ["Info", "All"]:
+                print(str(player)+":", out)
+        else:
+            if debug in ["All"]:
+                print(str(player)+":", out)
+        running[player] = create_running(protocol[player])
+
+    return out
+
+
 async def game(protocol, running, start_color):
     # position
     position = [[0 for j in range(6)] for i in range(7)]
@@ -105,42 +179,35 @@ async def game(protocol, running, start_color):
     for i in range(48):
         player = (start_color + i) % 2
 
-        # check if the buffer has still data in it
-        await clear_buffer(protocol, running, player)
-
         # check if the program is ready
-        await isready(protocol, running, player)
+        await send_message(protocol, running, player,
+            "isready", "readyok", "not ready")
 
-        # playing the game
         # set the position
-        protocol[player].stdin.write(position_LN(position, color))
-        await running[player]
-        if (get_res(running[player])[:19] == "Set the position LN"):
-            print(player, get_res(running[player]))
-        running[player] = create_running(protocol[player])
-        await clear_buffer(protocol, running, player)
+        await send_message(protocol, running, player,
+            position_LN(position, color), "Set the position LN", "while setting the position")
 
         # analyse the position
-        await isready(protocol, running, player)
-        protocol[player].stdin.write(b'go depth 7\n')
+        out = await search(protocol, running, player)
 
-        is_info = True
-        out = ""
-        while is_info:
-            await running[player]
-            out = get_res(running[player])
+        # get the move
+        move = int(out.split()[5])
 
-            if len(out) > 4 and out[:4] != "info":
-                is_info = False
+        # check if the move is leagal
+        if not is_leagal(position, move):
+            if debug in ["Error", "Warning", "Info", "All"]:
+                print(str(player)+":", "Illeagal move")
+            if color == -1:
+                return (1, 0, 0)
+            elif color == 1:
+                return (0, 0, 1)
 
-            print(player, out)
-            running[player] = create_running(protocol[player])
-
-        pos = int(out.split()[5])
-        x, y = pos % 7, pos // 7
+        # do the move
+        x, y = move % 7, move // 7
         position[x][y] = color
         color *= -1
 
+        # check if the position has a connect four
         if is_won(position) == 1:
             return (1, 0, 0)
         elif is_won(position) == -1:
@@ -150,14 +217,24 @@ async def game(protocol, running, start_color):
 
 
 async def newgame(protocol, running, wdl):
-    for i in range(2):
-        protocol[i].stdin.write(b'newgame\n')
-        await running[i]
-        if get_res(running[i]) != "started a new game":
-            print("ERROR: staring a new game:", get_res(running[i]))
+    # protocol
+    for player in range(2):
+        await send_message(protocol, running, player,
+            "newgame", "started a new game", "starting a new game")
+
+    # print win draw loss
+    print("w:"+str(wdl[0])+",", "d:"+str(wdl[1])+",", "l:"+str(wdl[2]))
 
 
 async def main():
+    # arguments
+    if len(sys.argv) <= 2:
+        print("ERROR: to few arguments")
+        quit()
+    elif len(sys.argv) > 3:
+        change_options(sys.argv[3:])
+
+    # create the protocol
     protocol = [
         await asyncio.create_subprocess_exec(
             sys.argv[1],
@@ -173,7 +250,7 @@ async def main():
         )
     ]
 
-    # Start the subprocess and check if they start
+    # Start the subprocess and check if they start correctly
     running = [create_running(protocol[0]),
                create_running(protocol[1])]
     await running[0]
@@ -192,15 +269,15 @@ async def main():
                create_running(protocol[1])]
 
     # start of the program
-    # win, draw, loss
     wdl = np.array([0, 0, 0])
-    for i in range(4):
+    for i in range(8):
         # which instance starts
         wdl += await game(protocol, running, 0)
         await newgame(protocol, running, wdl)
+
+        # gamepair with reversed colors
         wdl += list(reversed(await game(protocol, running, 1)))
         await newgame(protocol, running, wdl)
-        print(wdl)
 
 
 if __name__ == "__main__":

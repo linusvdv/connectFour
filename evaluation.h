@@ -4,4 +4,4 @@
 bool is_won (position pos);
 
 
-int evaluation (position pos);
+wdlm_struct evaluation (position pos);

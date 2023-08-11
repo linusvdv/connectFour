@@ -22,7 +22,7 @@ struct position {
     // -1 red
     //  0 yellow
     uint64_t color = -1;
-    // count of pieces
+    // count of pieces in possible connect four
     // outer array
     // - horrizontal
     // - vertcial
@@ -46,13 +46,23 @@ struct position {
 };
 
 
+struct wdlm_struct {
+    float win;
+    float draw;
+    float loss;
+    int mate = -1;
+//    wdlm_struct(float win, float draw, float loss, int mate):
+//        win{win}, draw{draw}, loss{loss}, mate{mate} {}
+};
+
+
 struct TranspositionTable {
     // needed to verifie the board
     uint64_t board;
     uint64_t red;
     // additional information
     int depth;
-    int value;
+    wdlm_struct wdlm;
     int mv;
 };
 
@@ -60,8 +70,17 @@ struct TranspositionTable {
 struct TT_result {
     bool TT_hit;
     int depth;
-    int value;
+    wdlm_struct wdlm;
     int mv;
+};
+
+
+struct search_result {
+    wdlm_struct wdlm;
+    // best move
+    int bestmv;
+    // search stop
+    bool stop;
 };
 
 
@@ -69,6 +88,7 @@ struct TT_result {
 const unsigned int TT_size = 10000019;
 
 
+// used for movemaker
 constexpr std::array<uint64_t, 7> columns = {
     0b000000100000010000001000000100000010000001 << 0,
     0b000000100000010000001000000100000010000001 << 1,
@@ -80,6 +100,7 @@ constexpr std::array<uint64_t, 7> columns = {
 };
 
 
+// used for movemaker
 constexpr std::array<uint64_t, 4> cross_types = {
     (1LL << 21) | (1LL << 22) | (1LL << 23) | (1LL << 24),
     (1LL <<  3) | (1LL << 10) | (1LL << 17) | (1LL << 24),

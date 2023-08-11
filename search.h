@@ -4,4 +4,4 @@
 #include "types.h"
 
 
-std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta, std::atomic<bool>& search_stop);
+search_result alphabeta (position pos, int depth, wdlm_struct alpha, wdlm_struct beta, std::atomic<bool>& search_stop);

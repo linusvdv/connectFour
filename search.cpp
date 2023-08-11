@@ -13,54 +13,91 @@
 #include "transpositiontable.h"
 
 
-std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta, std::atomic<bool>& search_stop)
+// swaps wdlm win with wdlm draw
+wdlm_struct wdlm_reverse (wdlm_struct wdlm)
 {
-    if (is_won(pos) == true) {
-        if (pos.color == 0) {
-            return std::make_tuple(-10042 + std::popcount(pos.board), -1);
-        }
-        else
-            return std::make_tuple( 10042 - std::popcount(pos.board), -1);
+    return wdlm_struct{wdlm.loss, wdlm.draw, wdlm.win, wdlm.mate};
+}
+
+
+// increases the mate score by one if there is a mate
+wdlm_struct mate_increase (wdlm_struct wdlm)
+{
+    if (wdlm.mate != -1)
+        wdlm.mate += 1;
+    return wdlm;
+
+}
+
+
+// >=
+bool wdlm_ge (wdlm_struct wdlm1, wdlm_struct wdlm2, bool equal)
+{
+    // even
+    if ((wdlm1.win - wdlm1.loss) == (wdlm2.win - wdlm2.loss)) {
+        // both mate
+        if (wdlm1.mate != -1 && wdlm2.mate != -1)
+            return (wdlm1.mate < wdlm2.mate);
+        // one mate
+        else if (wdlm1.mate != -1 || wdlm2.mate != -1)
+            return (wdlm1.mate > wdlm2.mate);
+        // no mate
+        return equal;
+    }
+    else {
+        return ((wdlm1.win - wdlm1.loss) > (wdlm2.win - wdlm2.loss));
     }
 
-    if (depth <= 0 || std::popcount(pos.board) >= 42)
-        return std::make_tuple(evaluation(pos), -1);
+}
 
+
+search_result alphabeta (position pos, int depth, wdlm_struct alpha, wdlm_struct beta, std::atomic<bool>& search_stop)
+{
+    // search stop
     if (search_stop)
-        return std::make_tuple(42424242*((pos.color&1LL)*2 - 1), -1);
+        return search_result{wdlm_struct{0, 0, 0, -1}, -1, true};
 
-    int bestvalue = alpha;
-    int bestmv = -1;
+    // connect four
+    if (is_won(pos) == true)
+        return search_result{wdlm_struct{0, 0, 100, 0}, -1, false};
 
+    // all pices on the board
+    if (std::popcount(pos.board) >= 42)
+        return search_result{wdlm_struct{0, 100, 0, -1}, -1, false};
+
+    // transpositiontable
+    TT_result TT_data = TT_get(pos);
+    if (TT_data.TT_hit && TT_data.depth >= depth)
+        return search_result{mate_increase(TT_data.wdlm), TT_data.mv, false};
+
+    // evaluation
+    if (depth <= 0)
+        return search_result{evaluation(pos), -1, false};
+
+    // get leagal moves
     std::array<int, 7> mv = moves(pos);
 
     // move sorter
-    bool TT_mv = TT_move_sorter(pos, mv);
-    if (TT_mv == true) {
-        TT_result TT_data = TT_get(pos);
-        if (TT_data.depth >= depth)
-            return std::make_tuple(TT_data.value, TT_data.mv);
-    }
-    move_sorter(pos, mv, TT_mv);
+    move_sorter(pos, mv, TT_data);
 
     // search
+    wdlm_struct bestvalue = alpha;
+    int bestmv = -1;
+
     for (int i = 0; i < 7; i++) {
         if (mv[i] == -1) {
             continue;
         }
-        int value = 0;
+        // next depth
+        wdlm_struct wdlm_value{};
         do_move(pos, mv[i]);
-        if (TT_mv && i == 0)
-            value = -std::get<0>(alphabeta(pos, depth-1, -beta, -bestvalue, search_stop));
-        else
-            value = -std::get<0>(alphabeta(pos, depth-2, -beta, -bestvalue, search_stop));
+        wdlm_value = wdlm_reverse(alphabeta(pos, depth-1, wdlm_reverse(beta), wdlm_reverse(bestvalue), search_stop).wdlm);
         undo_move(pos, mv[i]);
 
-
-        if (value > bestvalue) {
-            bestvalue = value;
+        if (wdlm_ge(wdlm_value, bestvalue, false)) {
+            bestvalue = wdlm_value;
             bestmv = mv[i];
-            if (bestvalue >= beta)
+            if (wdlm_ge(bestvalue, beta, true))
                 break;
         }
     }
@@ -68,5 +105,5 @@ std::tuple<int, int> alphabeta (position pos, int depth, int alpha, int beta, st
     // add to TT
     if (bestmv != -1)
         TT_set(pos, depth, bestvalue, bestmv);
-    return std::make_tuple(bestvalue, bestmv);
+    return search_result(mate_increase(bestvalue), bestmv, false);
 }

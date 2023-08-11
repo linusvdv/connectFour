@@ -248,23 +248,41 @@ void protocol (position &pos, std::string input, std::atomic<bool>& search_stop)
             return;
         }
 
-        std::tuple<int, int> last_search;
+        search_result last_search={};
         for (int depth = 1; depth <= total_depth; depth++) {
             if (search_stop)
                 break;
-            std::tuple<int, int> search = alphabeta(pos, depth, -20000, 20000, search_stop);
-            if (!search_stop && depth < total_depth)
+            search_result search = alphabeta(pos, depth, wdlm_struct{0, 0, 100, -1}, wdlm_struct{100, 0, 0, -1} , search_stop);
+            if (!search_stop && depth < total_depth) {
                 std::cout <<  "info depth: " << depth
-                          << " value: "      << std::get<0>(search)
-                          << " bestmove: "   << std::get<1>(search) << std::endl;
-            else if (!search_stop)
+                          << " bestmove: "   << search.bestmv
+                          << " win: "        << search.wdlm.win
+                          << " draw: "       << search.wdlm.draw
+                          << " loss: "       << search.wdlm.loss;
+                if (search.wdlm.mate != -1)
+                    std::cout << " mate: "   << search.wdlm.mate;
+                std::cout << std::endl;
+            }
+            else if (!search_stop) {
                 std::cout <<  "depth: "      << depth
-                          << " value: "      << std::get<0>(search)
-                          << " bestmove: "   << std::get<1>(search) << std::endl;
-            else if (depth != 1)
+                          << " bestmove: "   << search.bestmv
+                          << " win: "        << search.wdlm.win
+                          << " draw: "       << search.wdlm.draw
+                          << " loss: "       << search.wdlm.loss;
+                if (search.wdlm.mate != -1)
+                    std::cout << " mate: "   << search.wdlm.mate;
+                std::cout << std::endl;
+            }
+            else if (depth != 1) {
                 std::cout <<  "depth: "      << depth - 1
-                          << " value: "      << std::get<0>(last_search)
-                          << " bestmove: "   << std::get<1>(last_search) << std::endl;
+                          << " bestmove: "   << last_search.bestmv
+                          << " win: "        << last_search.wdlm.win
+                          << " draw: "       << last_search.wdlm.draw
+                          << " loss: "       << last_search.wdlm.loss;
+                if (search.wdlm.mate != -1)
+                    std::cout << " mate: "   << last_search.wdlm.mate;
+                std::cout << std::endl;
+            }
             last_search = search;
         }
     }

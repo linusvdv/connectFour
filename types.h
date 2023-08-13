@@ -50,9 +50,8 @@ struct wdlm_struct {
     float win;
     float draw;
     float loss;
-    int mate = -1;
-//    wdlm_struct(float win, float draw, float loss, int mate):
-//        win{win}, draw{draw}, loss{loss}, mate{mate} {}
+    // mate == 0 not mate
+    int mate = 0;
 };
 
 
@@ -79,6 +78,7 @@ struct search_result {
     wdlm_struct wdlm;
     // best move
     int bestmv;
+    uint64_t nodes;
     // search stop
     bool stop;
 };

@@ -25,7 +25,7 @@ void move_sorter ([[maybe_unused]]position pos, std::array<int, 7>& mv, TT_resul
     for (int i = (TT_data.TT_hit==true ? 1 : 0); i < 7; i++) {
         mv_value[i].second = mv[i];
         // distance to the middle of the board
-        mv_value[i].first += std::min((mv[i] % 7), (7 - (mv[i] % 7)));
+        mv_value[i].first += std::min((mv[i] % 7), (6 - (mv[i] % 7)));
     }
 
     // sort

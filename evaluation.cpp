@@ -30,7 +30,5 @@ wdlm_struct evaluation (position pos)
                 eval += (std::popcount(pos.cross_count[i][  j][k] & 
                                        pos.cross_count[i][1-j][0]) << (k*2)) * (j*2-1);
             }
-//    show_board(pos, false);
-//    std::cout << 50 - 50 * erff(eval / 100) << std::endl;
-    return wdlm_struct{50 + 50 * erff(eval / 100), 0, 50 - 50 * erff(eval / 100), -1};
+    return wdlm_struct{50 + 49 * erff(eval / 100), 0, 50 - 49 * erff(eval / 100), 0};
 }

@@ -188,11 +188,13 @@ async def game(protocol, running, start_color):
         await send_message(protocol, running, player,
             position_LN(position, color), "Set the position LN", "while setting the position")
 
+        print(position_LN(position, color))
+
         # analyse the position
         out = await search(protocol, running, player)
 
         # get the move
-        move = int(out.split()[5])
+        move = int(out.split()[3])
 
         # check if the move is leagal
         if not is_leagal(position, move):
@@ -280,14 +282,14 @@ async def main():
 
     # start of the program
     wdl = np.array([0, 0, 0])
-    for i in range(8):
+    for i in range(1):
         # which instance starts
         wdl += await game(protocol, running, 0)
         await newgame(protocol, running, wdl)
 
         # gamepair with reversed colors
-        wdl += list(reversed(await game(protocol, running, 1)))
-        await newgame(protocol, running, wdl)
+#        wdl += list(reversed(await game(protocol, running, 1)))
+#        await newgame(protocol, running, wdl)
 
 
 if __name__ == "__main__":

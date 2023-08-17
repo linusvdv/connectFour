@@ -32,7 +32,7 @@ wdlm_struct mate_increase (wdlm_struct wdlm)
 }
 
 
-// increases the mate score by one if there is a mate
+// decreases the mate score by one if there is a mate
 wdlm_struct mate_decrease (wdlm_struct wdlm)
 {
     if (wdlm.mate > 0)
@@ -132,11 +132,10 @@ search_result alphabeta (position pos, int depth, wdlm_struct alpha, wdlm_struct
         }
     }
 
-    // add to TT
-    // if (bestmv != -1 && wdlm_ge(bestvalue, alpha, false))
-    if (bestmv != -1)
+    // add to TT if there is no cutoff
+    if (bestmv != -1 && !wdlm_ge(bestvalue, beta, true))
         TT_set(pos, depth, bestvalue, bestmv);
 
     // return the value
-    return search_result(bestvalue, bestmv, nodes, false);
+    return search_result{bestvalue, bestmv, nodes, false};
 }

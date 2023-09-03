@@ -85,7 +85,7 @@ struct search_result {
 
 
 // this number has to be a prime number
-const unsigned int TT_size = 10000019;
+const unsigned int TT_size = 9973;
 
 
 // used for movemaker

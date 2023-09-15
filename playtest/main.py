@@ -84,12 +84,18 @@ async def search(args, protocol, running, player, thread_number):
 
         # ignore inputs that begin with a info
         if len(out) > 4 and out[:4] != "info":
-            is_info = False
-            if debug in ["Info", "All"]:
-                print(thread_number, "\t" + str(player) + ":", out)
+            if (len(out) > 6 and out[:6] == "depth:"):
+                is_info = False
+                if args.debug in ["Info", "All"]:
+                    print(thread_number, "\t" + str(player) + ":", out)
+            else:
+                if args.debug in ["Warning", "Info", "All"]:
+                    print(thread_number, "\t" + str(player) + ":", out)
+
         else:
-            if debug in ["Info", "All"]:
+            if args.debug in ["Info", "All"]:
                 print(thread_number, "\t" + str(player) + ":", out)
+
         running[player] = create_running(protocol[player])
 
     return out
@@ -293,14 +299,15 @@ async def game(args, q_openings: Queue, q_games: Queue, thread_number):
         await newgame(args, protocol, running, thread_number)
         q_games.put(game_handler_res)
 
-        game_handler_res = await game_handler(args, protocol, running, 1, opening, thread_number)
-        game_res[0] += game_handler_res[1][2]
-        game_res[1] += game_handler_res[1][1]
-        game_res[2] += game_handler_res[1][0]
-        if not args.debug == "None":
-            print("W:", game_res[0], "D:", game_res[1], "L:", game_res[2])
-        await newgame(args, protocol, running, thread_number)
-        q_games.put(game_handler_res)
+        if args.save is False:
+            game_handler_res = await game_handler(args, protocol, running, 1, opening, thread_number)
+            game_res[0] += game_handler_res[1][2]
+            game_res[1] += game_handler_res[1][1]
+            game_res[2] += game_handler_res[1][0]
+            if not args.debug == "None":
+                print("W:", game_res[0], "D:", game_res[1], "L:", game_res[2])
+            await newgame(args, protocol, running, thread_number)
+            q_games.put(game_handler_res)
 
 
 # sync function to call a async function
@@ -344,7 +351,7 @@ def main(args):
 
 def check_executable_file(file):
     if not os.path.exists(file):
-        raise argparse.ArgumentTypeError("invalit file: %s" % file)
+        raise argparse.ArgumentTypeError("invalid file: %s" % file)
     if not os.access(file, os.X_OK):
         raise argparse.ArgumentTypeError("file %s not executable" % file)
     return file
@@ -352,25 +359,28 @@ def check_executable_file(file):
 
 def check_positive(value):
     if not value.isdigit() or int(value) == 0:
-        raise argparse.ArgumentTypeError("invalit positive int value: %s" % value)
+        raise argparse.ArgumentTypeError("invalid positive int value: %s" % value)
     return int(value)
 
 
 def argparsebool(value):
-    return bool(value)
+    if value in ["True", "False"]:
+        return bool(value)
+    else:
+        raise argparse.ArgumentTypeError("invalid choice: %s (choose from 'True', 'False')" % value)
 
 
 def check_json(file):
     if not os.path.exists(file):
-        raise argparse.ArgumentTypeError("invalit file: %s" % file)
+        raise argparse.ArgumentTypeError("invalid file: %s" % file)
     return check_new_json(file)
 
 
 def check_new_json(file):
     if len(file) <= 5:
-        raise argparse.ArgumentTypeError("invalit json file. To short: %s" % file)
+        raise argparse.ArgumentTypeError("invalid json file. To short: %s" % file)
     if file[-5:] != ".json":
-        raise argparse.ArgumentTypeError("invalit json file. Wrong ending: %s" % file)
+        raise argparse.ArgumentTypeError("invalid json file. Wrong ending: %s" % file)
     return file
 
 
@@ -387,8 +397,8 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--threads", default=1, type=check_positive, help="nuber of threads used")
     parser.add_argument("-d", "--depth", default=5, type=check_positive, help="depth of search")
     parser.add_argument("-g", "--games", default=1, type=check_positive, help="numbers of gamepairs")
-    parser.add_argument("-s", "--save", default="True", type=argparsebool,
-            choices=["True", "False"], help="save the game to a file and its outcome")
+    parser.add_argument("-s", "--save", default="False", type=argparsebool,
+            help="save the game to a file and its outcome")
     parser.add_argument("--debug", default="Warning", type=str,
             choices=["None", "Error", "Warning", "Info", "All"], help="level of debug")
     # file names

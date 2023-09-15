@@ -33,6 +33,33 @@ def is_won(pos):
                     pos.board[i+3][j] != 0):
                 return True
 
+    # vertical |
+    for i in range(7):
+        for j in range(3):
+            if (pos.board[i][j+0] ==
+                    pos.board[i][j+1] ==
+                    pos.board[i][j+2] ==
+                    pos.board[i][j+3] != 0):
+                return pos.board[i][j]
+
+    # diagonal \
+    for i in range(4):
+        for j in range(3):
+            if (pos.board[i+0][j+0] ==
+                    pos.board[i+1][j+1] ==
+                    pos.board[i+2][j+2] ==
+                    pos.board[i+3][j+3] != 0):
+                return pos.board[i][j]
+
+    # diagonal /
+    for i in range(4):
+        for j in range(3):
+            if (pos.board[i+0][j+3] ==
+                    pos.board[i+1][j+2] ==
+                    pos.board[i+2][j+1] ==
+                    pos.board[i+3][j+0] != 0):
+                return pos.board[i][j+3]
+
 
 def do_move(pos, mv):
     pos.board[mv[0]][mv[1]] = pos.color
@@ -92,6 +119,8 @@ def main(args):
     openings = []
     for i in range(args.position):
         openings.append(random_opening(args))
+        if (i % 1000 == 999):
+            print((i+1), (args.position))
     write_to_JSON(args, openings)
 
 

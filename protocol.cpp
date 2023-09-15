@@ -88,9 +88,8 @@ bool LN (position &pos, std::string input)
     for (int i = 0; i < 42; i++) {
         switch (input[i]) {
             case 'R':
+                // check if a piece is under the place
                 if (i > 6 && (pos.board & (1LL << (i - 7))) == 0) {
-                    std::cout << "TEST" << input << std::endl;
-                    std::cout << i << input[i] << input[i-7] << std::endl;
                     return false;
                 }
                 pos.board |= 1LL << i;
@@ -98,6 +97,7 @@ bool LN (position &pos, std::string input)
                 do_count(pos, i, 0);
                 break;
             case 'Y':
+                // check if a piece is under the place
                 if (i > 6 && (pos.board & (1LL << (i - 7))) == 0) {
                     return false;
                 }

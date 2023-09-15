@@ -8,7 +8,7 @@ else
   ifeq ($(opt),nolto)
     CXXFLAGS=-Wall -Wextra -g3 -O3 -fsanitize=address -std=c++20
   else
-    CXXFLAGS=-Wall -Wextra -g3 -O3 -flto -std=c++20
+    CXXFLAGS=-Wall -Wextra -g3 -O3 -flto=auto -std=c++20
   endif
 endif
 LDFLAGS=$(CXXFLAGS)

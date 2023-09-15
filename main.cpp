@@ -29,6 +29,10 @@
 
 int main ()
 {
+    // load NN values from file to memory
+    load_NN_value();
+
+    // position
     position pos;
 
     // stops the search and globaly
